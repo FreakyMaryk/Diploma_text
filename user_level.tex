@@ -8,7 +8,7 @@
 \item make clean | make | make install
 \end {enumerate}
 
-При запуске программы обязательно указывать переменную окружения LD\_LIBRARY\_PATH \footnote{http://www.opennet.ru/base/dev}, список отделённых  двоеточиями  имён каталогов, где библиотеку JBGC -- gc следует искать перед  тем,  как  их  будут  искать  по стандартным путям.
+При запуске программы обязательно указывать переменную окружения LD\_LIBRARY\_PATH \footnote{URL: \url{http://www.opennet.ru/base/dev}}, список отделённых  двоеточиями  имён каталогов, где библиотеку JBGC -- gc следует искать перед  тем,  как  их  будут  искать  по стандартным путям.
 
 Программа, использующая сборщик мусора JBGC должна удовлетворять следующим ограничениям:
 \begin{enumerate}
@@ -263,7 +263,7 @@ int main () {
 
 \subsection {Сравнительный пример без использования сборщика мусора и с использованием}
 Теперь рассмотрим код написанные на `` чистом'' C++, без использования сборки мусора, и с использованием.
-Для демонстрации примера использования JBGC было выбрано ``декартово дерево''. Декартово дерево (англ. cartesian tree, treap)\footnote{http://habrahabr.ru/post/101818/} — красивая и легко реализующаяся структура данных, которая с минимальными усилиями позволит производить многие скоростные операции над массивами данных. 
+Для демонстрации примера использования JBGC было выбрано ``декартово дерево''. Декартово дерево (англ. cartesian tree, treap)\footnote{URL: \url{http://habrahabr.ru/post/101818/}} — красивая и легко реализующаяся структура данных, которая с минимальными усилиями позволит производить многие скоростные операции над массивами данных. 
 \begin{lstlisting}
 #include <cstdio>
 #include <algorithm>
@@ -321,16 +321,16 @@ cartesian_tree<T> * merge (cartesian_tree<T> *u, cartesian_tree<T> *v)
   if (v == NULL)
     return u;
 
-  if (u->y >= v->y)
+  if (u -> y >= v -> y)
   {
-    u->r = merge (u->r, v);
-    u->count = (u->l != NULL ? u->l->count : 0) + (u->r != NULL ? u->r->count : 0) + 1;
+    u -> r = merge (u -> r, v);
+    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
     return u;
   }
   else
   {
-    v->l = merge (u, v->l);
-    v->count = (v->l != NULL ? v->l->count : 0) + (v->r != NULL ? v->r->count : 0) + 1;
+    v -> l = merge (u, v -> l);
+    v -> count = (v -> l != NULL ? v -> l -> count : 0) + (v -> r != NULL ? v -> r -> count : 0) + 1;
     return v;
   }
 }
@@ -349,18 +349,18 @@ cartesian_tree<T> split (cartesian_tree<T> *u, int key)
   if (u == NULL)
     return res;
 
-  if (u->key >= key)
+  if (u -> key >= key)
   {
-    tmp = split (u->l, key);
-    u->l = tmp.r;
-    u->count = (u->l != NULL ? u->l->count : 0) + (u->r != NULL ? u->r->count : 0) + 1;
+    tmp = split (u -> l, key);
+    u -> l = tmp.r;
+    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
     res.l = tmp.l, res.r = u;
   }
   else
   {
     tmp = split (u->r, key);
-    u->r = tmp.l;
-    u->count = (u->l != NULL ? u->l->count : 0) + (u->r != NULL ? u->r->count : 0) + 1;
+    u -> r = tmp.l;
+    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
     res.r = tmp.r, res.l = u;
   }
 
@@ -374,26 +374,26 @@ cartesian_tree<T>* del (cartesian_tree<T> *u, cartesian_tree<T> *p, cartesian_tr
   if (u == NULL)
     return node;
 
-  if (u->key == key)
+  if (u -> key == key)
   {
     cartesian_tree<T> *d;
     if (p == NULL)
-      d = node, node = merge (node->l, node->r);
+      d = node, node = merge (node -> l, node -> r);
     else
     {
-      if (p->r == u)
-        d = p->r, p->r = merge(u->l, u->r);
+      if (p -> r == u)
+        d = p -> r, p -> r = merge(u -> l, u -> r);
       else
-        d = p->l, p->l = merge(u->l, u->r);
+        d = p -> l, p -> l = merge(u -> l, u -> r);
     }
     return node;
   }
 
-  if (u->key > key)
-    return del(u->l, u, node, key);
+  if (u -> key > key)
+    return del(u -> l, u, node, key);
   else
-    return del(u->r, u, node, key);
-  u->count = (u->l != NULL ? u->l->count : 0) + (u->r != NULL ? u->r->count : 0) + 1;
+    return del(u -> r, u, node, key);
+  u->count = (u -> l != NULL ? u -> l ->count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
 }
 
 /* добавление одного дерева в другое, в зависимостир от приоритета y */
@@ -403,26 +403,26 @@ cartesian_tree<T>* add (cartesian_tree<T> *u, cartesian_tree<T> *v)
   if (u == NULL)
     return v;
 
-  if (u->y > v->y)
+  if (u -> y > v -> y)
   {
-    if (u->key < v->key)
+    if (u -> key < v -> key)
     {
-      u->r = add(u->r, v);
-      u->count = (u->l != NULL ? u->l->count : 0ll) + (u->r != NULL ? u->r->count : 0) + 1;
+      u -> r = add(u -> r, v);
+      u -> count = (u -> l != NULL ? u -> l -> count : 0ll) + (u -> r != NULL ? u -> r -> count : 0) + 1;
     }
     else
     {
-      u->l = add(u->l, v);
-      u->count = (u->l != NULL ? u->l->count : 0ll) + (u->r != NULL ? u->r->count : 0) + 1;
+      u -> l = add(u -> l, v);
+      u -> count = (u -> l != NULL ? u -> l -> count : 0ll) + (u -> r != NULL ? u -> r -> count : 0) + 1;
     }
     return u;
   }
   else
   {
     cartesian_tree<T> tmp;
-    tmp = split (u, v->key);
+    tmp = split (u, v -> key);
     v->l = tmp.l, v->r = tmp.r;
-    v->count = (v->l != NULL ? v->l->count : 0) + (v->r != NULL ? v->r->count : 0) + v->key;
+    v -> count = (v -> l != NULL ? v -> l -> count : 0) + (v -> r != NULL ? v -> r -> count : 0) + v -> key;
     return v;
   }
 
@@ -437,23 +437,23 @@ uint greater_count (cartesian_tree<T>* u, T key)
 
   uint res = 0;
   
-  if (u->key >= key)
+  if (u -> key >= key)
   {
-    if (u->r != NULL)
-      res += u->r->count;
-    return res + 1 + greater_count(u->l, key);
+    if (u -> r != NULL)
+      res += u -> r -> count;
+    return res + 1 + greater_count(u -> l, key);
   }
   else
-    return greater_count(u->r, key);
+    return greater_count(u -> r, key);
 }
 
 /* поиск минимального значения в дереве */
 template <class T>
 T get_min (cartesian_tree<T>* v)
 {
-  if (v->l != NULL)
-    return get_min(v->l);
-  return v->key;
+  if (v -> l != NULL)
+    return get_min(v -> l);
+  return v -> key;
 }
 
 /* удаление дерева*/
@@ -462,7 +462,7 @@ void clear (cartesian_tree<T> *u)
 {
   if (u == NULL)
     return;
-  clear(u->l), clear(u->r);
+  clear(u -> l), clear(u -> r);
 }
 
 /* класс myset на основе декартова дерева */
@@ -576,10 +576,10 @@ gc_ptr <cartesian_tree<T> > merge (gc_ptr <cartesian_tree<T> > u, gc_ptr <cartes
   if (v == 0)
     return u;
  
-  if (u->y >= v->y)
+  if (u -> y >= v -> y)
   {
-    u->r = merge (u->r, v);
-    u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+    u -> r = merge (u -> r, v);
+    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
     return u;
   }
   else
@@ -600,18 +600,18 @@ cartesian_tree<T> split (gc_ptr <cartesian_tree<T> > u, T key)
   if (u == 0)
     return res;
  
-  if (u->key >= key)
+  if (u -> key >= key)
   {
-    tmp = split (u->l, key);
-    u->l = tmp.r;
-    u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+    tmp = split (u -> l, key);
+    u -> l = tmp.r;
+    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
     res.l = tmp.l, res.r = u;
   }
   else
   {
-    tmp = split (u->r, key);
-    u->r = tmp.l;
-    u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+    tmp = split (u -> r, key);
+    u -> r = tmp.l;
+    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
     res.r = tmp.r, res.l = u;
   }
  
@@ -624,26 +624,26 @@ gc_ptr <cartesian_tree<T> > del (gc_ptr <cartesian_tree<T> >u, gc_ptr <cartesian
   if (u == 0)
     return node;
  
-  if (u->key == key)
+  if (u -> key == key)
   {
     gc_ptr <cartesian_tree<T> > d;
     if (p == 0)
-      d = node, node = merge (node->l, node->r);
+      d = node, node = merge (node -> l, node -> r);
     else
     {
-      if (p->r == u)
-        d = p->r, p->r = merge(u->l, u->r);
+      if (p -> r == u)
+        d = p -> r, p -> r = merge(u -> l, u -> r);
       else
-        d = p->l, p->l = merge(u->l, u->r);
+        d = p -> l, p -> l = merge(u -> l, u -> r);
     }
     return node;
   }
  
-  if (u->key > key)
-    return del(u->l, u, node, key);
+  if (u -> key > key)
+    return del(u -> l, u, node, key);
   else
-    return del(u->r, u, node, key);
-  u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+    return del(u -> r, u, node, key);
+  u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u-> r -> count : 0) + 1;
 }
  
 template <class T>
@@ -652,26 +652,26 @@ gc_ptr <cartesian_tree<T> > add (gc_ptr <cartesian_tree<T> > u, gc_ptr <cartesia
   if (u == 0)
     return v;
  
-  if (u->y > v->y)
+  if (u -> y > v -> y)
   {
-    if (u->key < v->key)
+    if (u -> key < v -> key)
     {
       u->r = add(u->r, v);
-      u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+      u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
     }
     else
     {
-      u->l = add(u->l, v);
-      u->count = (u->l != 0 ? u->l->count : 0) + (u->r != 0 ? u->r->count : 0) + 1;
+      u -> l = add(u -> l, v);
+      u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
     }
     return u;
   }
   else
   {
     cartesian_tree<T> tmp;
-    tmp = split (u, v->key);
-    v->l = tmp.l, v->r = tmp.r;
-    v->count = (v->l != 0 ? v->l->count : 0) + (v->r != 0 ? v->r->count : 0) + v->key;
+    tmp = split (u, v -> key);
+    v -> l = tmp.l, v -> r = tmp.r;
+    v- > count = (v -> l != 0 ? v -> l -> count : 0) + (v -> r != 0 ? v -> r -> count : 0) + v -> key;
     return v;
   }
  
@@ -686,22 +686,22 @@ uint greater_count (gc_ptr <cartesian_tree<T> > u, T key)
  
   uint res = 0;
  
-  if (u->key >= key)
+  if (u -> key >= key)
   {
-    if (u->r != 0)
-      res += u->r->count;
-    return res + 1 + greater_count(u->l, key);
+    if (u -> r != 0)
+      res += u -> r -> count;
+    return res + 1 + greater_count(u -> l, key);
   }
   else
-    return greater_count(u->r, key);
+    return greater_count(u -> r, key);
 }
  
 template <class T>
 T get_min (gc_ptr <cartesian_tree<T> > v)
 {
-  if (v->l != 0)
-    return get_min(v->l);
-  return v->key;
+  if (v -> l != 0)
+    return get_min(v -> l);
+  return v -> key;
 }
  
 template <class T>
@@ -709,7 +709,7 @@ void clear (gc_ptr <cartesian_tree<T> > u)
 {
   if (u == 0)
     return;
-  clear(u->l), clear(u->r);
+  clear(u -> l), clear(u -> r);
 }
  
 template <class T>
