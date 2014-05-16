@@ -1,409 +1,172 @@
-\section {Пользовательский уровень сборщика мусора JBGC}
+\section {Пользовательский уровень библиотеки\\
+сборки мусора}
 
-\subsection {Использование JBGC}
-Для того, чтобы воспользоваться сборщиком мусора JBGC нужно сначала установить его на ваш компьютер. Сборщик мусора изначально написан под Ubuntu. Работает он в системах семейства Linux. Для того, чтобы его установить, нужно выполнить последовательно следующие команды в терминале:
+С точки зрения пользователя библиотека сборки мусора представлена одним шаблонным классом
+``умного указателя'' 
+
+\begin{lstlisting}
+    template <class T> class gc_ptr {
+       ...
+    }
+\end{lstlisting}
+
+и одной шаблонной функцией выделения памяти
+
+\begin{lstlisting}
+    template <class T, typename ... Types> T* gc_new (
+    Types ... types, size_t count = 1
+    ) {
+       ...
+    }
+\end{lstlisting}
+
+которые становятся доступными после подключения одного заголовочного файла:
+
+\begin{lstlisting}
+    # include <libgc/libgc.h>
+\end{lstlisting}
+
+Исполняемый код библиотеки содержится в модулях, которые могут быть как собраны статически вместе
+с приложением, так и подгружены динамически.
+
+Любая программа, которая в качестве примитива выделения памяти использует \lstinline{gc_new}, в качестве
+указателей --- \lstinline{gc_ptr}, и не содержит явного освобождения памяти с помощью \lstinline{delete}, будет
+работать с использованием сборки мусора.
+
+Семантика описанных примитивов с точки зрения сборки мусора будет описана в следующем разделе; пока же
+мы обсудим их интерфейс с точки зрения пользователя.
+
+\subsection{Интерфейс \lstinline{gc_ptr}}
+
+Класс \lstinline{gc_ptr} инкапсулирует всю функциональность указателя, которая безопасна с точки зрения
+сборки мусора. Данный класс реализует следующие операторы:
+
 \begin{enumerate}
-\item ./autogen.sh
-\item ./configure
-\item make clean | make | make install
-\end {enumerate}
+\item \lstinline{T& operator*() const}~--- разыменование;
+\item \lstinline{T* operator->() const}~--- доступ к указателю;
+\item \lstinline{T& operator[](size_t index)}~--- доступ к элементам массива;
+\item \lstinline{bool operator== (const gc_ptr <T> &a), bool operator== (const T* a)}~--- проверки на равенство;
+\item \lstinline{bool operator!= (const gc_ptr <T> &a), bool operator!= (const T* a)}~--- проверки на неравенство;
+\item \lstinline{gc_ptr& operator = (const gc_ptr <T> &a), gc_ptr& operator = (T* a)}~--- присваивание.
+\end{enumerate}
 
-При запуске программы обязательно указывать переменную окружения LD\_LIBRARY\_PATH \footnote{URL: \url{http://www.opennet.ru/base/dev}}, список отделённых  двоеточиями  имён каталогов, где библиотеку JBGC -- gc следует искать перед  тем,  как  их  будут  искать  по стандартным путям.
+Кроме того, у данного класса два конструктора: \lstinline{gc_ptr (T* p)} и \lstinline{gc_ptr (const gc_ptr <T> &p)}. 
 
-Программа, использующая сборщик мусора JBGC должна удовлетворять следующим ограничениям:
-\begin{enumerate}
-\item Все указатели  должны быть заменены на  объекты класса gc\_ptr -- gc\_ptr<typename> \begin{lstlisting}int* a; ->  gc_ptr<int> a;
-\end{lstlisting}
-\item Все вызовы new заменены на gc\_new<typenames>(params)(size\_t size) \begin{lstlisting} new int [5]; -> gc_new<int>(5);
-\end{lstlisting}
-\end {enumerate}
-А также нужно сделать include заголовочного файла:\begin{lstlisting}
-#include <libgc/libgc.h>;
-\end{lstlisting}
+\subsection{Функция выделения памяти \lstinline{gc_new}}
 
-Небольшая программка, использующая сборщик мусора JBGC:
-\begin{lstlisting}
-#include <cstdio>
-#include <libgc/libgc.h>
+В языке С++ существует пять различных вариантов выделения памяти с помощью оператора \lstinline{new}. 
+Этот оператор пытается выделить достаточно памяти в куче для размещения новых данных и, в случае успеха, возвращает 
+адрес выделенного участка. После выделения памяти вызывается конструктор создаваемого объекта. Однако, если оператор
+\lstinline{new} не может выделить память в куче, то возбуждается исключение типа \lstinline{std::bad_alloc}. 
 
-class point {
-	int x,y
-}
+Функция \lstinline{gc_new} позволяет выразить все ситуации, в которых может быть употреблён оператор \lstinline{new}.
+Ниже мы приведем примеры использования \lstinline{gc_new} в каждой из них.
 
-int main() {
-	gc_ptr<point> pt;
-	gc_ptr<int> p;
-
-	pt = gc_new<point>();
-	p = gc_new<int>();
-}
-
-\end{lstlisting}
-\subsection {Возможности ``умного указателя'' gc\_ptr}
-В следствие одного из главных требований, накладываемых на реализацию сборщика мусора:  не должно быть никаких операций над указателями (логических, арифметических и т.п.), был реализован набор операторов для работы с gc\_ptr:
-
-\begin{enumerate}
-\item (*) или разыменовывания -- примененная к gc\_ptr, обеспечивает доступ к содержимому ячейки памяти, на которую ссылается указатель. 
-Пример использования:
-\begin{lstlisting}
-int a = 5, b = 6;
-gc_ptr<int> ar = &a, br = &b;
-* ar = 10;
-* br = *ar;
-\end{lstlisting}
-
-\item  (->) или стрелка, обеспечивает доступ к элементам структур.
-
-Пример:
-\begin{lstlisting}
-struct A {
-	int a;
-	int b;
-}
-/* создается gc_ptr на структуру A */
-gc_ptr<A> obj = gc_new<A>();
-/* обращение к полям структуры */
-obj -> a = 5;
-obj -> b = 6;
-\end{lstlisting}
-
-\item ([ ]) или обращения к элементу. 
-
-Пример:
-\begin{lstlisting}
-/* создается массив элементов типа int длины len */
-gc_ptr<int> ar = gc_new<int>(len), br = gc_new<int>(len);
-	for (int i = 0; i < len; i++) {
-		ar[i] = i;
-		br[i] = len - i;
-	}
-\end{lstlisting}
-
-\item (==) или проверки на равенство, вернет соответственно true и false, только если gc\_ptr указывают на один и тот же объект. 
-
-Пример:
-\begin{lstlisting}
-int a = 5, b = 6;
-int * ar2 = &a, br2 = &b;
-gc_ptr<int> ar = &a, br = &b;
-/* в этом случае результат будет false */
-if (ar == br) {
-...	
-}
-/* в этом случае результат будет true */
-if (ar== ar2) {
-...
-}
-
-/* в этом случае результат будет false */
-if (ar == 0) {
-...
-}
-\end{lstlisting}
-
-\item (!=) или проверки на неравенство, вернет соответственно true и false, только если gc\_ptr указывают на разные объекты. 
-
-Пример:
-\begin{lstlisting}
-int a = 5, b = 6;
-int * ar2 = &a, br2 = &b;
-с
-/* результат будет true */
-if (ar != br) {
-...	
-}
-/* результат будет false */
-if (ar != ar2) {
-...
-}
-if (ar !=  0) {
-...
-}
-\end{lstlisting}
-
-\item (=) или присваивания. 
-
-Пример:
-\begin{lstlisting}
-int a = 5;
-int * ar2 = &a;
-gc_ptr<int> ar = gc_new<int>();
-gc_ptr<int> br = gc_new<int>();
-ar = ar2;
-br = ar;
-\end{lstlisting}
-
-\end {enumerate}
-
-Представленных операций достаточно для того, чтобы реализовать основные примитивы языка С++.
-
-\subsection{ Возможности функции выделения памяти gc\_new}
-
-В языке С++ существует пять различных вариантов вызова функции выделения памяти для объекта --- new. Оператор пытается выделить достаточно памяти в куче для размещения новых данных и, в случае успеха, возвращает адрес свежевыделенной памяти. После выделения памяти вызывается конструктор объекта. Однако, если new не может выделить память в куче, то он передаст (throw) исключение типа std::bad\_alloc. Это устраняет необходимость явной проверки результата выделения. После встречи компилятором ключевого слова new им генерируется вызов конструктора класса.
-Для gc\_new существуют вызовы по-сути схожие стандартным вызовам new. Ниже приведены примеры вызовов new и gc\_new.
 \begin {enumerate}
-\item \textit{gc\_new<type>()} --  выделение памяти под обект типа type, кроме структур, классов. 
-Пример:
- \begin{lstlisting}
-gc_ptr<float> pf = gc_new <float>();
-\end{lstlisting}
-
-Пример использования на языке С++:
-\begin{lstlisting}
-float* pf = new float;
-\end{lstlisting}
-
-\item \textit{gc\_new< class\_name>()} -- выделение памяти под объект класса/структуры, после вызов конструктора по умолчанию. 
-Пример:
- \begin{lstlisting}
-class CName {
-public:
-   enum {
-      sizeOfBuffer = 256
-   };
-
-};
-int main() {
-  gc_ptr<CName> pName = gc_new< CName>();
-}
-\end{lstlisting}
-
-Пример использования на языке С++:
-\begin{lstlisting}
-class CName {
-public:
-   enum {
-      sizeOfBuffer = 256
-   };
-
-};
-int main() {
-   CName* pName = new CName;
-}
-\end{lstlisting}
-
-\item \textit{gc\_new <type>(len)} -- выделение памяти под массив из элементов типа type, c количеством элементов len. 
-Пример:
- \begin{lstlisting}
- gc_ptr<int> p_array = gc_new <int>(len);
-\end{lstlisting}
-Пример использования на языке С++:
-
-\begin{lstlisting}
-int* p_array = new int[len];
-\end{lstlisting}
-
-\item \textit{gc\_new <class\_name, types\_of\_objects...>(список аргументов конструктора не по умолчанию)} -- выделение памяти под обект класса/структуры. В треугольных скобках слева направо аргументы: class\_name -- имя класса/структуры объекта, под который отводится память; types\_of\_objects -- список типов объектов, присутствующих в конструкторе, строго в порядке указания в конструкторе; список имен объектов или значений, передаваемых конструктору(список аргументов в круглых скобках). 
-Пример:
- \begin{lstlisting}
-class A {
-private:
-	int size;
-	gc_ptr<int> mas;
-public:
-	A () {}
-	~A () {}
-
-	A (int len, const gc_ptr<int> & ar) {
-		size = len;
-		this -> mas = gc_new<int>(len);
-		for (int i = 0; i < len; i++) {
-			mas[i] = ar[i];
-		}
-	}
-};
-int main () {
-	gc_ptr<A> a = gc_new<A, int, gc_ptr<int>&>(len, ar);
-	gc_ptr<A> b = gc_new<A, int, gc_ptr<int>&>(len, br);
-	return 0;
-}
-\end{lstlisting}
-
-Пример использования на языке С++, \textit{new A(p1, p2, ...)} -- выделение памяти под объект класса A, после этого вызов конструктора не по умолчанию. :
-\begin{lstlisting}
-class A {
-private:
-	int size;
-	int * mas;
-public:
-	A () {}
-	~A () {}
-
-	A (int len, const int * & ar) {
-		size = len;
-		this -> mas =new  int [len];
-		for (int i = 0; i < len; i++) {
-			mas[i] = ar[i];
-		}
-	}
-	};
-int main () {
-	A* a = new A (len, ar);
-	A* b = new A (len, br);
-	for (int i = 0; i < len; i++) {
-		ar[i] += 10;
-		br[i] += 100;
-	}
-	return 0;
-}
-\end{lstlisting}
+\item \lstinline{gc_new<type> ()}~--- выделение памяти под значение атомарного типа (\lstinline{int}, \lstinline{float} и т.д.); 
+\item \lstinline{gc_new<C> ()}~--- выделение памяти под одиночный экземпляр объект класса \lstinline{C} с вызовом конструктора по
+умолчанию;
+\item \lstinline{gc_new <type> (len)}~--- выделение памяти под массив длины \lstinline{len} из элементов атомарного типа \lstinline{type};
+\item \lstinline{gc_new <C> (len)}~--- выделение памяти под массив длины \lstinline{len} из экземпляров класса \lstinline{C}, для каждого из
+которых вызывается конструктор по умолчанию;
+\item \lstinline{gc_new <C, T1, T2, ..> (a1, a2, ..)}~--- выделение памяти под экземпляр объекта класса \lstinline{C} с вызовом
+конструктора с парамерами \lstinline{a1, a2, ..}, имеющими типы \lstinline{T1, T2, ..} соответственно.
 \end {enumerate}
 
-Таким образом процесс выделения памяти в языке С++ для указателей различных типов можно заменить вызовом  функции gc\_new соответствующего вида.
+Таким образом примитив выделения памяти в языке С++ для объектов различных типов можно заменить вызовом функции \lstinline{gc_new} 
+соответствующего вида.
 
-\subsection {Пример использования сборщика мусора}
-Реализован класс MyString, на примере которого демонстрируется использование сборщика мусора JBGC. 
+\subsection{Пример использования пользовательских примитивов}
+
+В качестве примера использования пользовательских примитивов библиотеки сборки мусора приведем 
+реализацию класса строк:
 
 \begin{lstlisting}
-#include <iostream>
-#include <ostream>
-#include <libgc/libgc.h>
+    class GCString {
+      private:
+        // указатель на массив символов
+        gc_ptr<char> pData; 	
+        // длина строки 
+        int length;	
+      public:
+        GCString ();
+        GCString (const char * cString);
+        virtual ~GCString ();
+        GCString (const GCString& s);
+        GCString operator= (const GCString& s);
+        GCString operator= ( const char* cString);
+        char operator[] (int i);
+        GCString operator+  (const GCString& s);
+        GCString operator+  (const char * cString);
+        GCString operator+= (GCString& s);
+      private:
+        void copy(const GCString& s);
+    };
 
-using namespace std;
+    GCString::GCString() {
+      length = 0;
+      pData  = NULL;
+    }
 
-class MyString
-{
-private:
-	/* указатель на массив char, подмена указателя на
-	 * специальный указатель JBGC */
-	gc_ptr<char> pData; 	
-	/* длина строки */
-	int length;	
-public:
-	MyString();
-	MyString(const char * cString);
-	~MyString();
-	MyString(const MyString& s);
-	MyString operator=(const MyString& s);
-	MyString operator=( const char* cString);
-	char operator[](int i);
-	void put();
-	MyString operator+(const MyString& s);
-	MyString operator+(const char * cString);
-	MyString operator+=(MyString& s);
-private:
-	void copy(const MyString& s);
+    GCString::GCString(const char * cString) {
+      length = strlen (cString);
+      pData = gc_new <char> (length + 1);
+      strcpy ((char*) pData, cString);
+    }
 
-};
+    GCString::~GCString(){}
 
-MyString::MyString() {
-	length = 0;
-	pData = NULL;
-}
+    GCString::GCString(const GCString& s) {
+      copy (s);
+    }
 
-MyString::MyString(const char * cString) {
-	length = 0;
-	while (cString[length] != '\0') {
-		length++;
-	}
-	/* подмена вызова оператора new */
-	pData = gc_new <char>(length + 1);
-	for (int i = 0; i < length; i++) {
-		pData[i] = cString[i];
-	}
-	pData[length] = '\0';
-}
+    GCString GCString::operator=(const GCString& s) {
+      copy(s);
+      return *this;
+    }
 
-MyString::~MyString(){}
+    GCString GCString::operator=(const char * cString) {
+      GCString temp (cString);
+      return temp;
+    }
 
-MyString::MyString(const MyString& s) {
-	copy(s);
-}
+    void GCString::copy(const GCString& s) {
+      length = s.length;
+      pData = gc_new <char> (length + 1);
+      strcpy ((char*) pData, (char*) s.pData);
+    }
 
-MyString MyString::operator=(const MyString& s) {
-	copy(s);
-	return *this;
-}
+    GCString GCString::operator+ (const GCString& s) {
+      GCString cat;
+      cat.length = length + s.length;
+      cat.pData = gc_new <char> (cat.length + 1);
+      for (int i = 0; i < length; i++) 
+        cat.pData[i] = pData[i];      
+      for (int i = 0; i < s.length; i++) 
+       cat.pData[length + i] = s.pData[i];
+      cat.pData[cat.length] = '\0';
+    }
 
-MyString MyString::operator=(const char * cString) {
-	MyString temp(cString);
-	return temp;
-}
+    char GCString::operator[] (int i) {
+      return pData[i];
+    }
 
-void MyString::copy(const MyString& s) {
-	length = s.length;
-	/* подмена вызова оператора new */
-	pData = gc_new <char>(length + 1);
-	for (int i = 0; i < length; i++) {
-		pData[i] = s.pData[i];
-	}
-	pData[length] = '\0';
-}
+    GCString GCString::operator+ (const char* cString) {
+      GCString temp (cString);
+      GCString cat;
+      cat = operator+ (temp);
+      return cat;
+    }
 
-void MyString::put() {
-	for (int i = 0; i < length; i++) {
-		printf("%c",pData[i]);
-	}
-}
-MyString MyString::operator+(const MyString& s) {
-	MyString cat;
-	cat.length = length + s.length;
-	/* подмена вызова оператора new */
-	cat.pData = gc_new <char>(cat.length + 1);
-	for (int i = 0; i < length; i++) {
-		cat.pData[i] = pData[i];
-	}
-	for (int i = 0; i < s.length; i++) {
-		cat.pData[length + i] = s.pData[i];
-	}
-	cat.pData[cat.length] = '\0';
-	return cat;
-}
-
-char MyString::operator[](int i) {
-    return pData[i];
-}
-
-MyString MyString::operator+(const char* cString) {
-	MyString temp(cString);
-	MyString cat;
-	cat = operator+(temp);
-	return cat;
-}
-
-MyString MyString::operator+=(MyString& s) {
-    /* создание указателя на временный объект длины (length + s.length + 1) средствами JBGC */
-    gc_ptr<char> temp_string = gc_new <char>(length + s.length + 1);
-
-    for (int i = 0; i < length; ++i){
+    GCString GCString::operator+= (GCString& s) {
+      gc_ptr<char> temp_string = gc_new <char> (length + s.length + 1);
+      for (int i = 0; i < length; ++i)
         temp_string[i] = pData[i];
-    }
-
-    for (int i = 0; i < s.length; ++i) {
+      for (int i = 0; i < s.length; ++i) 
         temp_string[i + length] = s[i];
+      temp_string[length + s.length] = '\0';
+      pData = temp_string;
+      length = length + s.length;
+      return *this;
     }
-
-    temp_string[length + s.length] = '\0';
-    pData = temp_string;
-    length = length + s.length;
-
-    return *this;
-}
-
-int main() {
-	MyString	a("hello,"),	/* инициализация с CString */	
-			b ="world!";	 /* проверка оператора присваивания */
-	a.put();
-	printf("\n");	
-	MyString c;		
-	/* проверка операции конкатенации двух строк (MyString) */
-	c = a + b;			
-	c.put();
-	printf("\n");	
-	/* проверка операции конкатенации */
-	a+= c ;	
-	a.put();
-	printf("\n");
-	MyString d;
-	/* проверка операции конкатенации  MyString и массива char*/
-	d = a + "I'm here!\n";	
-	d.put();
-	MyString g(a);	
-	g.put();	
-	MyString h = b;
-	h.put();
-	/* проверка вызова конструктора от пустой строки */
-	MyString i("");			
-	return 0;
-}
 \end{lstlisting}
