@@ -140,19 +140,36 @@ br = ar;
 \subsection{ Возможности функции выделения памяти gc\_new}
 
 В языке С++ существует пять различных вариантов вызова функции выделения памяти для объекта --- new. Оператор пытается выделить достаточно памяти в куче для размещения новых данных и, в случае успеха, возвращает адрес свежевыделенной памяти. После выделения памяти вызывается конструктор объекта. Однако, если new не может выделить память в куче, то он передаст (throw) исключение типа std::bad\_alloc. Это устраняет необходимость явной проверки результата выделения. После встречи компилятором ключевого слова new им генерируется вызов конструктора класса.
+Для gc\_new существуют вызовы по-сути схожие стандартным вызовам new. Ниже приведены примеры вызовов new и gc\_new.
 \begin {enumerate}
-
-\item \textit{new type} -- выделение памяти под обект типа type, кроме объектов структур, классов. 
-
+\item \textit{gc\_new<type>()} --  выделение памяти под обект типа type, кроме структур, классов. 
 Пример:
  \begin{lstlisting}
+gc_ptr<float> pf = gc_new <float>();
+\end{lstlisting}
+
+Пример использования на языке С++:
+\begin{lstlisting}
 float* pf = new float;
 \end{lstlisting}
- 
-\item \textit{new A()} -- выделение памяти под объект класса/структуры, после этого вызов конструктора по умолчанию. 
 
+\item \textit{gc\_new< class\_name>()} -- выделение памяти под объект класса/структуры, после вызов конструктора по умолчанию. 
 Пример:
  \begin{lstlisting}
+class CName {
+public:
+   enum {
+      sizeOfBuffer = 256
+   };
+
+};
+int main() {
+  gc_ptr<CName> pName = gc_new< CName>();
+}
+\end{lstlisting}
+
+Пример использования на языке С++:
+\begin{lstlisting}
 class CName {
 public:
    enum {
@@ -165,17 +182,45 @@ int main() {
 }
 \end{lstlisting}
 
-\item\textit{ new type [len]} -- выделение памяти под массив, состоящий из элементов типа type, длинной len.
-
- Пример:
- \begin{lstlisting}
-  int* p_array = new int[5];
-\end{lstlisting}
-
-\item \textit{new A(p1, p2, ...)} -- выделение памяти под объект класса A, после этого вызов конструктора не по умолчанию. 
-
+\item \textit{gc\_new <type>(len)} -- выделение памяти под массив из элементов типа type, c количеством элементов len. 
 Пример:
  \begin{lstlisting}
+ gc_ptr<int> p_array = gc_new <int>(len);
+\end{lstlisting}
+Пример использования на языке С++:
+
+\begin{lstlisting}
+int* p_array = new int[len];
+\end{lstlisting}
+
+\item \textit{gc\_new <class\_name, types\_of\_objects...>(список аргументов конструктора не по умолчанию)} -- выделение памяти под обект класса/структуры. В треугольных скобках слева направо аргументы: class\_name -- имя класса/структуры объекта, под который отводится память; types\_of\_objects -- список типов объектов, присутствующих в конструкторе, строго в порядке указания в конструкторе; список имен объектов или значений, передаваемых конструктору(список аргументов в круглых скобках). 
+Пример:
+ \begin{lstlisting}
+class A {
+private:
+	int size;
+	gc_ptr<int> mas;
+public:
+	A () {}
+	~A () {}
+
+	A (int len, const gc_ptr<int> & ar) {
+		size = len;
+		this -> mas = gc_new<int>(len);
+		for (int i = 0; i < len; i++) {
+			mas[i] = ar[i];
+		}
+	}
+};
+int main () {
+	gc_ptr<A> a = gc_new<A, int, gc_ptr<int>&>(len, ar);
+	gc_ptr<A> b = gc_new<A, int, gc_ptr<int>&>(len, br);
+	return 0;
+}
+\end{lstlisting}
+
+Пример использования на языке С++, \textit{new A(p1, p2, ...)} -- выделение памяти под объект класса A, после этого вызов конструктора не по умолчанию. :
+\begin{lstlisting}
 class A {
 private:
 	int size;
@@ -204,582 +249,161 @@ int main () {
 \end{lstlisting}
 \end {enumerate}
 
-Для gc\_new существуют вызовы по-сути схожие стандартным вызовам new.
-\begin {enumerate}
-\item \textit{gc\_new<type>()} --  выделение памяти под обект типа type, кроме структур, классов. 
-Пример:
- \begin{lstlisting}
-gc_ptr<float> pf = gc_new <float>();
-\end{lstlisting}
-\item \textit{gc\_new< class\_name>()} -- выделение памяти под объект класса/структуры, после вызов конструктора по умолчанию. 
-Пример:
- \begin{lstlisting}
-class CName {
-public:
-   enum {
-      sizeOfBuffer = 256
-   };
-
-};
-int main() {
-  gc_ptr<CName> pName = gc_new< CName>();
-}
-\end{lstlisting}
-
-\item \textit{gc\_new <type>(len)} -- выделение памяти под массив из элементов типа type, c количеством элементов len. 
-Пример:
- \begin{lstlisting}
- gc_ptr<int> p_array = gc_new <int>(5);
-\end{lstlisting}
-
-\item \textit{gc\_new <class\_name, types\_of\_objects...>(список аргументов конструктора не по умолчанию)} -- выделение памяти под обект класса/структуры. В треугольных скобках слева направо аргументы: class\_name -- имя класса/структуры объекта, под который отводится память; types\_of\_objects -- список типов объектов, присутствующих в конструкторе, строго в порядке указания в конструкторе; список имен объектов или значений, передаваемых конструктору(список аргументов в круглых скобках). 
-Пример:
- \begin{lstlisting}
-class A {
-private:
-	int size;
-	gc_ptr<int> mas;
-public:
-	A () {}
-	~A () {}
-
-	A (int len, const gc_ptr<int> & ar) {
-		size = len;
-		this -> mas = gc_new<int>(len);
-		for (int i = 0; i < len; i++) {
-			mas[i] = ar[i];
-		}
-	}
-};
-int main () {
-	gc_ptr<A> a = gc_new<A, int, gc_ptr<int>&>(len, ar);
-	gc_ptr<A> b = gc_new<A, int, gc_ptr<int>&>(len, br);
-	return 0;
-}
-\end{lstlisting}
-\end {enumerate}
-
 Таким образом процесс выделения памяти в языке С++ для указателей различных типов можно заменить вызовом  функции gc\_new соответствующего вида.
 
-\subsection {Сравнительный пример без использования сборщика мусора и с использованием}
-Теперь рассмотрим код написанные на `` чистом'' C++, без использования сборки мусора, и с использованием.
-Для демонстрации примера использования JBGC было выбрано ``декартово дерево''. Декартово дерево (англ. cartesian tree, treap)\footnote{URL: \url{http://habrahabr.ru/post/101818/}} — красивая и легко реализующаяся структура данных, которая с минимальными усилиями позволит производить многие скоростные операции над массивами данных. 
+\subsection {Пример использования сборщика мусора}
+Реализован класс MyString, на примере которого демонстрируется использование сборщика мусора JBGC. 
+
 \begin{lstlisting}
-#include <cstdio>
-#include <algorithm>
-#include <cassert>
-
-using namespace std;
-
-typedef unsigned int uint;
-
-template <class T> 
-class cartesian_tree
-{ 
-  public:
-/* У декартова дерева есть следующие поля:
- * -- значение
- * -- приоритет
- * -- глубина дерева
- * -- левое поддерево
- * -- правое поддерево
-*/
-  T key;
-  uint y;
-  uint count;
-
-  cartesian_tree *l, *r;
-
-  cartesian_tree (int _key)
-  {
-    count = 1;
-    key = _key;
-    y = ((((uint)rand())<<15) + rand());
-    l = NULL;
-    r = NULL;
-  }
-
-  cartesian_tree (void)
-  {
-    count = 1;
-    key = 0;
-    y = 0;
-    l = NULL;
-    r = NULL;
-  }
-};
-
-/* Операция Merge принимает на вход два декартовых дерева u и v. 
- * От нее требуется слить их в одно, тоже корректное, декартово дерево v.
-*/
-template <class T>
-cartesian_tree<T> * merge (cartesian_tree<T> *u, cartesian_tree<T> *v)
-{
-  if (u == NULL)
-    return v;
-
-  if (v == NULL)
-    return u;
-
-  if (u -> y >= v -> y)
-  {
-    u -> r = merge (u -> r, v);
-    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-    return u;
-  }
-  else
-  {
-    v -> l = merge (u, v -> l);
-    v -> count = (v -> l != NULL ? v -> l -> count : 0) + (v -> r != NULL ? v -> r -> count : 0) + 1;
-    return v;
-  }
-}
-
-/* Операция Split принимает на вход корректное декартово дерево uи некий ключ key. 
-* Задача операции — разделить дерево на два так, 
- * чтобы в одном из них ( l ) оказались все элементы исходного дерева с ключами, меньшими key, а в другом ( r ) — с большими.
-*/
-template <class T>
-cartesian_tree<T> split (cartesian_tree<T> *u, int key)
-{
-  cartesian_tree<T> res, tmp;
-
-  res.l = res.r = NULL;
-
-  if (u == NULL)
-    return res;
-
-  if (u -> key >= key)
-  {
-    tmp = split (u -> l, key);
-    u -> l = tmp.r;
-    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-    res.l = tmp.l, res.r = u;
-  }
-  else
-  {
-    tmp = split (u->r, key);
-    u -> r = tmp.l;
-    u -> count = (u -> l != NULL ? u -> l -> count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-    res.r = tmp.r, res.l = u;
-  }
-
-  return res;
-}
-
-/* удаления значения key из дерева */
-template <class T>
-cartesian_tree<T>* del (cartesian_tree<T> *u, cartesian_tree<T> *p, cartesian_tree<T> *node, T key)
-{
-  if (u == NULL)
-    return node;
-
-  if (u -> key == key)
-  {
-    cartesian_tree<T> *d;
-    if (p == NULL)
-      d = node, node = merge (node -> l, node -> r);
-    else
-    {
-      if (p -> r == u)
-        d = p -> r, p -> r = merge(u -> l, u -> r);
-      else
-        d = p -> l, p -> l = merge(u -> l, u -> r);
-    }
-    return node;
-  }
-
-  if (u -> key > key)
-    return del(u -> l, u, node, key);
-  else
-    return del(u -> r, u, node, key);
-  u->count = (u -> l != NULL ? u -> l ->count : 0) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-}
-
-/* добавление одного дерева в другое, в зависимостир от приоритета y */
-template <class T>
-cartesian_tree<T>* add (cartesian_tree<T> *u, cartesian_tree<T> *v)
-{
-  if (u == NULL)
-    return v;
-
-  if (u -> y > v -> y)
-  {
-    if (u -> key < v -> key)
-    {
-      u -> r = add(u -> r, v);
-      u -> count = (u -> l != NULL ? u -> l -> count : 0ll) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-    }
-    else
-    {
-      u -> l = add(u -> l, v);
-      u -> count = (u -> l != NULL ? u -> l -> count : 0ll) + (u -> r != NULL ? u -> r -> count : 0) + 1;
-    }
-    return u;
-  }
-  else
-  {
-    cartesian_tree<T> tmp;
-    tmp = split (u, v -> key);
-    v->l = tmp.l, v->r = tmp.r;
-    v -> count = (v -> l != NULL ? v -> l -> count : 0) + (v -> r != NULL ? v -> r -> count : 0) + v -> key;
-    return v;
-  }
-
-  return NULL;
-}
-
-template <class T>
-uint greater_count (cartesian_tree<T>* u, T key)
-{
-  if (u == NULL)
-    return 0;
-
-  uint res = 0;
-  
-  if (u -> key >= key)
-  {
-    if (u -> r != NULL)
-      res += u -> r -> count;
-    return res + 1 + greater_count(u -> l, key);
-  }
-  else
-    return greater_count(u -> r, key);
-}
-
-/* поиск минимального значения в дереве */
-template <class T>
-T get_min (cartesian_tree<T>* v)
-{
-  if (v -> l != NULL)
-    return get_min(v -> l);
-  return v -> key;
-}
-
-/* удаление дерева*/
-template <class T>
-void clear (cartesian_tree<T> *u)
-{
-  if (u == NULL)
-    return;
-  clear(u -> l), clear(u -> r);
-}
-
-/* класс myset на основе декартова дерева */
-template <class T>
-class myset
-{
-public:
-  cartesian_tree<T> *node;
-
-  myset()
-  {
-    node = NULL;
-  }
-
-  void insert (int k)
-  {
-    cartesian_tree<T> *v = new cartesian_tree<T>(k);
-    node = add (node, v);
-  }
-
-  void erase (int k)
-  {
-    node = del (node, NULL, node, k);
-  }
-
-  uint greater_count (T k)
-  {
-    return ::greater_count (node, k);
-  }
-
-  T get_min ()
-  {
-    return ::get_min(node);
-  }
-};
-
-/* тестируем myset, добавляем рандомные элементы в список */
-void test (int STEP_COUNT, int ELEM_COUNT)
-{
-  for (int i = 0; i < STEP_COUNT; i++)
-  {
-    myset <int> s;
-    for (int j = 0; j < ELEM_COUNT; j++)   
-      s.insert(rand() + j);
-  }
-} 
-
-int main (int argc, char *argv[])
-{
-	assert(argc == 3);
-	int STEP_COUNT, ELEM_COUNT;
-
-	sscanf (argv[1], "%d", &STEP_COUNT);
-	sscanf (argv[2], "%d", &ELEM_COUNT);
-
-	test(STEP_COUNT, ELEM_COUNT);
-
-	return 0;
-}
-\end{lstlisting}
-
-Далее приведен код с использование сборщика мусора. От предыдущего он отличается тем, что в нем добавлено использование стандартного map. И функции сравнения myset и map. Это необходимо для того, чтобы убедиться, что не было удалено лишних элементов.
-\begin{lstlisting}
-#include <cstdio>
+#include <iostream>
+#include <ostream>
 #include <libgc/libgc.h>
-#include <set>
 
 using namespace std;
 
-extern bool new_active;
- 
-typedef unsigned int uint;
- 
-template <class T>
-class cartesian_tree
+class MyString
 {
-  public:
- 
- 
-  T key;
-  uint y;
-  int count;
- 
-  gc_ptr <cartesian_tree<T> > l, r;
- 
-  cartesian_tree (T _key)
-  {
-    count = 1;
-    key = _key;
-    y = ((rand()<<15) + rand());
-    l = 0;
-    r = 0;
-  }
- 
-  cartesian_tree (void)
-  {
-    count = 1;
-    key = 0;
-    y = 0;
-    l = 0;
-    r = 0;
-  }
-};
- 
-template <class T>
-gc_ptr <cartesian_tree<T> > merge (gc_ptr <cartesian_tree<T> > u, gc_ptr <cartesian_tree<T> > v)
-{
-  if (u == 0)
-    return v;
- 
-  if (v == 0)
-    return u;
- 
-  if (u -> y >= v -> y)
-  {
-    u -> r = merge (u -> r, v);
-    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
-    return u;
-  }
-  else
-  {
-    v->l = merge (u, v->l);
-    v->count = (v->l != 0 ? v->l->count : 0) + (v->r != 0 ? v->r->count : 0) + 1;
-    return v;
-  }
-}
- 
-template <class T>
-cartesian_tree<T> split (gc_ptr <cartesian_tree<T> > u, T key)
-{
-  cartesian_tree<T> res, tmp;
- 
-  res.l = res.r = 0;
- 
-  if (u == 0)
-    return res;
- 
-  if (u -> key >= key)
-  {
-    tmp = split (u -> l, key);
-    u -> l = tmp.r;
-    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
-    res.l = tmp.l, res.r = u;
-  }
-  else
-  {
-    tmp = split (u -> r, key);
-    u -> r = tmp.l;
-    u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
-    res.r = tmp.r, res.l = u;
-  }
- 
-  return res;
-}
- 
-template <class T>
-gc_ptr <cartesian_tree<T> > del (gc_ptr <cartesian_tree<T> >u, gc_ptr <cartesian_tree<T> > p, gc_ptr <cartesian_tree<T> > node, T key)
-{
-  if (u == 0)
-    return node;
- 
-  if (u -> key == key)
-  {
-    gc_ptr <cartesian_tree<T> > d;
-    if (p == 0)
-      d = node, node = merge (node -> l, node -> r);
-    else
-    {
-      if (p -> r == u)
-        d = p -> r, p -> r = merge(u -> l, u -> r);
-      else
-        d = p -> l, p -> l = merge(u -> l, u -> r);
-    }
-    return node;
-  }
- 
-  if (u -> key > key)
-    return del(u -> l, u, node, key);
-  else
-    return del(u -> r, u, node, key);
-  u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u-> r -> count : 0) + 1;
-}
- 
-template <class T>
-gc_ptr <cartesian_tree<T> > add (gc_ptr <cartesian_tree<T> > u, gc_ptr <cartesian_tree<T> > v)
-{
-  if (u == 0)
-    return v;
- 
-  if (u -> y > v -> y)
-  {
-    if (u -> key < v -> key)
-    {
-      u->r = add(u->r, v);
-      u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
-    }
-    else
-    {
-      u -> l = add(u -> l, v);
-      u -> count = (u -> l != 0 ? u -> l -> count : 0) + (u -> r != 0 ? u -> r -> count : 0) + 1;
-    }
-    return u;
-  }
-  else
-  {
-    cartesian_tree<T> tmp;
-    tmp = split (u, v -> key);
-    v -> l = tmp.l, v -> r = tmp.r;
-    v- > count = (v -> l != 0 ? v -> l -> count : 0) + (v -> r != 0 ? v -> r -> count : 0) + v -> key;
-    return v;
-  }
- 
-  return 0;
-}
- 
-template <class T>
-uint greater_count (gc_ptr <cartesian_tree<T> > u, T key)
-{
-  if (u == 0)
-    return 0;
- 
-  uint res = 0;
- 
-  if (u -> key >= key)
-  {
-    if (u -> r != 0)
-      res += u -> r -> count;
-    return res + 1 + greater_count(u -> l, key);
-  }
-  else
-    return greater_count(u -> r, key);
-}
- 
-template <class T>
-T get_min (gc_ptr <cartesian_tree<T> > v)
-{
-  if (v -> l != 0)
-    return get_min(v -> l);
-  return v -> key;
-}
- 
-template <class T>
-void clear (gc_ptr <cartesian_tree<T> > u)
-{
-  if (u == 0)
-    return;
-  clear(u -> l), clear(u -> r);
-}
- 
-template <class T>
-class myset
-{
+private:
+	/* указатель на массив char, подмена указателя на
+	 * специальный указатель JBGC */
+	gc_ptr<char> pData; 	
+	/* длина строки */
+	int length;	
 public:
-  gc_ptr <cartesian_tree<T> > node;
- 
-  myset()
-  {
-    node = 0;
-  }
- 
-  void insert (T k)
-  {
-    gc_ptr <cartesian_tree<T> > v = gc_new <cartesian_tree<T>> (1);
-    *v = cartesian_tree<T> (k);
-    node = add (node, v);
-  }
- 
-  void erase (T k)
-  {
-    node = del (node, gc_ptr<cartesian_tree<T>> (0), node, k);
-  }
- 
-  uint greater_count (T k)
-  {
-    return ::greater_count (node, k);
-  }
- 
-  T get_min ()
-  {
-    return ::get_min(node);
-  }
+	MyString();
+	MyString(const char * cString);
+	~MyString();
+	MyString(const MyString& s);
+	MyString operator=(const MyString& s);
+	MyString operator=( const char* cString);
+	char operator[](int i);
+	void put();
+	MyString operator+(const MyString& s);
+	MyString operator+(const char * cString);
+	MyString operator+=(MyString& s);
+private:
+	void copy(const MyString& s);
+
 };
- 
-/* Функция вставки и удаления элементов в multiset -- стандартную структуру С++
- * и в специальную myset с использование сборки мусора. 
- */
-int main (void)
-{
-  int ELEM_COUNT = 100000;
-  multiset<int> s;
-  myset <int> ms;
-  for (int i = 0; i < ELEM_COUNT; i++)
-  {
-    int k = ((rand()<<15) + rand());
-    s.insert(k);
-    ms.insert(k);
-  }
-  for (int j = 0;;j++)
-  {
-    for (int i = 0; i < 50000; i++)
-    {
 
-      if (ms.get_min() != *s.begin())
-      {
-        printf ("ERROR\n");
-        return 0;
-      }
+MyString::MyString() {
+	length = 0;
+	pData = NULL;
+}
 
-      s.erase(s.begin());
-      ms.erase(ms.get_min());
+MyString::MyString(const char * cString) {
+	length = 0;
+	while (cString[length] != '\0') {
+		length++;
+	}
+	/* подмена вызова оператора new */
+	pData = gc_new <char>(length + 1);
+	for (int i = 0; i < length; i++) {
+		pData[i] = cString[i];
+	}
+	pData[length] = '\0';
+}
+
+MyString::~MyString(){}
+
+MyString::MyString(const MyString& s) {
+	copy(s);
+}
+
+MyString MyString::operator=(const MyString& s) {
+	copy(s);
+	return *this;
+}
+
+MyString MyString::operator=(const char * cString) {
+	MyString temp(cString);
+	return temp;
+}
+
+void MyString::copy(const MyString& s) {
+	length = s.length;
+	/* подмена вызова оператора new */
+	pData = gc_new <char>(length + 1);
+	for (int i = 0; i < length; i++) {
+		pData[i] = s.pData[i];
+	}
+	pData[length] = '\0';
+}
+
+void MyString::put() {
+	for (int i = 0; i < length; i++) {
+		printf("%c",pData[i]);
+	}
+}
+MyString MyString::operator+(const MyString& s) {
+	MyString cat;
+	cat.length = length + s.length;
+	/* подмена вызова оператора new */
+	cat.pData = gc_new <char>(cat.length + 1);
+	for (int i = 0; i < length; i++) {
+		cat.pData[i] = pData[i];
+	}
+	for (int i = 0; i < s.length; i++) {
+		cat.pData[length + i] = s.pData[i];
+	}
+	cat.pData[cat.length] = '\0';
+	return cat;
+}
+
+char MyString::operator[](int i) {
+    return pData[i];
+}
+
+MyString MyString::operator+(const char* cString) {
+	MyString temp(cString);
+	MyString cat;
+	cat = operator+(temp);
+	return cat;
+}
+
+MyString MyString::operator+=(MyString& s) {
+    /* создание указателя на временный объект длины (length + s.length + 1) средствами JBGC */
+    gc_ptr<char> temp_string = gc_new <char>(length + s.length + 1);
+
+    for (int i = 0; i < length; ++i){
+        temp_string[i] = pData[i];
     }
-    for (int i = 0; i < 50000; i++)
-    {
-      int k = ((rand()<<15) + rand());
-      s.insert(k);
-      ms.insert(k);
+
+    for (int i = 0; i < s.length; ++i) {
+        temp_string[i + length] = s[i];
     }
-  }
+
+    temp_string[length + s.length] = '\0';
+    pData = temp_string;
+    length = length + s.length;
+
+    return *this;
+}
+
+int main() {
+	MyString	a("hello,"),	/* инициализация с CString */	
+			b ="world!";	 /* проверка оператора присваивания */
+	a.put();
+	printf("\n");	
+	MyString c;		
+	/* проверка операции конкатенации двух строк (MyString) */
+	c = a + b;			
+	c.put();
+	printf("\n");	
+	/* проверка операции конкатенации */
+	a+= c ;	
+	a.put();
+	printf("\n");
+	MyString d;
+	/* проверка операции конкатенации  MyString и массива char*/
+	d = a + "I'm here!\n";	
+	d.put();
+	MyString g(a);	
+	g.put();	
+	MyString h = b;
+	h.put();
+	/* проверка вызова конструктора от пустой строки */
+	MyString i("");			
+	return 0;
 }
 \end{lstlisting}
