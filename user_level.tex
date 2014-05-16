@@ -140,77 +140,19 @@ br = ar;
 \subsection{ Возможности функции выделения памяти gc\_new}
 
 В языке С++ существует пять различных вариантов вызова функции выделения памяти для объекта --- new. Оператор пытается выделить достаточно памяти в куче для размещения новых данных и, в случае успеха, возвращает адрес свежевыделенной памяти. После выделения памяти вызывается конструктор объекта. Однако, если new не может выделить память в куче, то он передаст (throw) исключение типа std::bad\_alloc. Это устраняет необходимость явной проверки результата выделения. После встречи компилятором ключевого слова new им генерируется вызов конструктора класса.
-\begin {enumerate}
-
-\item \textit{new type} -- выделение памяти под обект типа type, кроме объектов структур, классов. 
-
-Пример:
- \begin{lstlisting}
-float* pf = new float;
-\end{lstlisting}
- 
-\item \textit{new A()} -- выделение памяти под объект класса/структуры, после этого вызов конструктора по умолчанию. 
-
-Пример:
- \begin{lstlisting}
-class CName {
-public:
-   enum {
-      sizeOfBuffer = 256
-   };
-
-};
-int main() {
-   CName* pName = new CName;
-}
-\end{lstlisting}
-
-\item\textit{ new type [len]} -- выделение памяти под массив, состоящий из элементов типа type, длинной len.
-
- Пример:
- \begin{lstlisting}
-  int* p_array = new int[5];
-\end{lstlisting}
-
-\item \textit{new A(p1, p2, ...)} -- выделение памяти под объект класса A, после этого вызов конструктора не по умолчанию. 
-
-Пример:
- \begin{lstlisting}
-class A {
-private:
-	int size;
-	int * mas;
-public:
-	A () {}
-	~A () {}
-
-	A (int len, const int * & ar) {
-		size = len;
-		this -> mas =new  int [len];
-		for (int i = 0; i < len; i++) {
-			mas[i] = ar[i];
-		}
-	}
-	};
-int main () {
-	A* a = new A (len, ar);
-	A* b = new A (len, br);
-	for (int i = 0; i < len; i++) {
-		ar[i] += 10;
-		br[i] += 100;
-	}
-	return 0;
-}
-\end{lstlisting}
-\end {enumerate}
-
-Для gc\_new существуют вызовы по-сути схожие стандартным вызовам new.
+Для gc\_new существуют вызовы по-сути схожие стандартным вызовам new. Ниже приведены примеры вызовов new и gc_new.
 \begin {enumerate}
 \item \textit{gc\_new<type>()} --  выделение памяти под обект типа type, кроме структур, классов. 
 Пример:
  \begin{lstlisting}
 gc_ptr<float> pf = gc_new <float>();
 \end{lstlisting}
+
+Пример использования на языке С++:
+\begin{lstlisting}
+float* pf = new float;
+\end{lstlisting}
+
 \item \textit{gc\_new< class\_name>()} -- выделение памяти под объект класса/структуры, после вызов конструктора по умолчанию. 
 Пример:
  \begin{lstlisting}
@@ -226,10 +168,29 @@ int main() {
 }
 \end{lstlisting}
 
+Пример использования на языке С++:
+\begin{lstlisting}
+class CName {
+public:
+   enum {
+      sizeOfBuffer = 256
+   };
+
+};
+int main() {
+   CName* pName = new CName;
+}
+\end{lstlisting}
+
 \item \textit{gc\_new <type>(len)} -- выделение памяти под массив из элементов типа type, c количеством элементов len. 
 Пример:
  \begin{lstlisting}
- gc_ptr<int> p_array = gc_new <int>(5);
+ gc_ptr<int> p_array = gc_new <int>(len);
+\end{lstlisting}
+Пример использования на языке С++:
+
+\begin{lstlisting}
+int* p_array = new int[len];
 \end{lstlisting}
 
 \item \textit{gc\_new <class\_name, types\_of\_objects...>(список аргументов конструктора не по умолчанию)} -- выделение памяти под обект класса/структуры. В треугольных скобках слева направо аргументы: class\_name -- имя класса/структуры объекта, под который отводится память; types\_of\_objects -- список типов объектов, присутствующих в конструкторе, строго в порядке указания в конструкторе; список имен объектов или значений, передаваемых конструктору(список аргументов в круглых скобках). 
@@ -254,6 +215,35 @@ public:
 int main () {
 	gc_ptr<A> a = gc_new<A, int, gc_ptr<int>&>(len, ar);
 	gc_ptr<A> b = gc_new<A, int, gc_ptr<int>&>(len, br);
+	return 0;
+}
+\end{lstlisting}
+
+Пример использования на языке С++, \textit{new A(p1, p2, ...)} -- выделение памяти под объект класса A, после этого вызов конструктора не по умолчанию. :
+\begin{lstlisting}
+class A {
+private:
+	int size;
+	int * mas;
+public:
+	A () {}
+	~A () {}
+
+	A (int len, const int * & ar) {
+		size = len;
+		this -> mas =new  int [len];
+		for (int i = 0; i < len; i++) {
+			mas[i] = ar[i];
+		}
+	}
+	};
+int main () {
+	A* a = new A (len, ar);
+	A* b = new A (len, br);
+	for (int i = 0; i < len; i++) {
+		ar[i] += 10;
+		br[i] += 100;
+	}
 	return 0;
 }
 \end{lstlisting}
