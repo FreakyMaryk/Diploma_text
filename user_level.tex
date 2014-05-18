@@ -43,7 +43,7 @@
 
 \begin{enumerate}
 \item \lstinline{T& operator*() const}~--- разыменование;
-\item \lstinline{T* operator->() const}~--- доступ к указателю;
+\item \lstinline{T* operator->() const, operator T* () const}~--- доступ к указателю;
 \item \lstinline{T& operator[](size_t index)}~--- доступ к элементам массива;
 \item \lstinline{bool operator== (const gc_ptr <T> &a), bool operator== (const T* a)}~--- проверки на равенство;
 \item \lstinline{bool operator!= (const gc_ptr <T> &a), bool operator!= (const T* a)}~--- проверки на неравенство;
@@ -84,89 +84,53 @@
 \begin{lstlisting}
     class GCString {
       private:
-        // указатель на массив символов
         gc_ptr<char> pData; 	
-        // длина строки 
-        int length;	
+        int length;	 
+        GCString (gc_ptr<char> p, int l) : pData (p), length (l) {};     
       public:
-        GCString ();
-        GCString (const char * cString);
-        virtual ~GCString ();
-        GCString (const GCString& s);
-        GCString operator= (const GCString& s);
-        GCString operator= ( const char* cString);
-        char operator[] (int i);
-        GCString operator+  (const GCString& s);
-        GCString operator+  (const char * cString);
+        GCString () : length (0), pData (NULL) {};
+        GCString (const char *cString);
+        virtual ~GCString () {};
+        GCString (const GCString &s);
+        GCString operator= (const GCString &s);
+        GCString operator= (const char *cString);
+        char operator[] (int i) {return pData [i];};
+        GCString operator+  (const GCString &s);
+        GCString operator+  (const char *cString);
         GCString operator+= (GCString& s);
-      private:
-        void copy(const GCString& s);
-    };
+      };
 
-    GCString::GCString() {
-      length = 0;
-      pData  = NULL;
-    }
+      GCString::GCString (const char *cString) {
+        length = strlen (cString);
+        pData  = gc_new<char> (length+1);
+        strcpy ((char *) pData, cString);
+      }
 
-    GCString::GCString(const char * cString) {
-      length = strlen (cString);
-      pData = gc_new <char> (length + 1);
-      strcpy ((char*) pData, cString);
-    }
+      GCString::GCString (const GCString &s) : 
+        length (s.length), pData (s.pData) {}
 
-    GCString::~GCString(){}
+      GCString GCString::operator= (const GCString &s) {
+        length = s.length;
+        pData  = s.pData;
+        return *this;
+      }
 
-    GCString::GCString(const GCString& s) {
-      copy (s);
-    }
+      GCString GCString::operator= (const char *cString) {
+        return *this = GCString (cString);
+      }
 
-    GCString GCString::operator=(const GCString& s) {
-      copy(s);
-      return *this;
-    }
+      GCString GCString::operator+ (const GCString &s) {
+        gc_ptr<char> p = gc_new<char> (length + s.length + 1);
+        strcpy (p, (char*) this->pData);
+        strcat (p, (char*) s.pData);
+        return GCString (p, length + s.length);
+      }
 
-    GCString GCString::operator=(const char * cString) {
-      GCString temp (cString);
-      return temp;
-    }
+      GCString GCString::operator+ (const char *cString) {
+        return *this + GCString (cString);
+      }
 
-    void GCString::copy(const GCString& s) {
-      length = s.length;
-      pData = gc_new <char> (length + 1);
-      strcpy ((char*) pData, (char*) s.pData);
-    }
-
-    GCString GCString::operator+ (const GCString& s) {
-      GCString cat;
-      cat.length = length + s.length;
-      cat.pData = gc_new <char> (cat.length + 1);
-      for (int i = 0; i < length; i++) 
-        cat.pData[i] = pData[i];      
-      for (int i = 0; i < s.length; i++) 
-       cat.pData[length + i] = s.pData[i];
-      cat.pData[cat.length] = '\0';
-    }
-
-    char GCString::operator[] (int i) {
-      return pData[i];
-    }
-
-    GCString GCString::operator+ (const char* cString) {
-      GCString temp (cString);
-      GCString cat;
-      cat = operator+ (temp);
-      return cat;
-    }
-
-    GCString GCString::operator+= (GCString& s) {
-      gc_ptr<char> temp_string = gc_new <char> (length + s.length + 1);
-      for (int i = 0; i < length; ++i)
-        temp_string[i] = pData[i];
-      for (int i = 0; i < s.length; ++i) 
-        temp_string[i + length] = s[i];
-      temp_string[length + s.length] = '\0';
-      pData = temp_string;
-      length = length + s.length;
-      return *this;
-    }
+      GCString GCString::operator+= (GCString &s) {
+        return *this = *this + s;
+      }
 \end{lstlisting}
